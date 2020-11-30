@@ -15,12 +15,11 @@
 #
 ##############################################################################
 import time
-from colorsys import hsv_to_rgb
 from PIL import ImageFont, Image, ImageDraw, ImageStat
 import os
 import os.path
 from os import path
-import ST7789 as ST7789
+import ST7789 
 from socketIO_client import SocketIO, LoggingNamespace
 import requests
 from io import BytesIO
@@ -30,6 +29,7 @@ import logging
 import signal
 import RPi.GPIO as GPIO
 import commands 
+import subprocess
 
 # Startup Script
 print("Pirate Display | Startup")
@@ -83,11 +83,11 @@ def on_push_state(*args):
     else:
         service = 'unknown'
     if 'uri' in args[0]:
-        print 'URI ' + args[0]['uri'] 
+        print('URI ' + args[0]['uri']) 
     
     if 'trackType' in args[0]:
         tracktype = args[0]['trackType'] 
-        print 'Tract Type ' + tracktype
+        print('Tract Type ' + tracktype)
     else:
         tracktype = "unknown"
         
@@ -111,8 +111,6 @@ def on_push_state(*args):
     if len(albumart) == 0:  # to catch a empty field on start
         img = getBackgroundImage()
         print('Album Art Length Zero - using default Service: ' + service)
-        
-        #albumart = 'http://localhost:3000/albumart'
     elif 'http' not in albumart:
         if albumart == '/albumart':
             img = getBackgroundImage()
@@ -277,6 +275,8 @@ disp.begin()
 WIDTH = 240
 HEIGHT = 240
 waitingforshutdown = 0
+
+# Create Small, Medium, Large Fonts
 font_s = ImageFont.truetype(script_path + '/fonts/Roboto-Medium.ttf', 20)
 font_m = ImageFont.truetype(script_path + '/fonts/Roboto-Medium.ttf', 24)
 font_l = ImageFont.truetype(script_path + '/fonts/Roboto-Medium.ttf', 30)
@@ -316,14 +316,14 @@ def shutDownPi():
     import subprocess
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output = process.communicate()[0]
-    print output
+    print(output)
     
 def rebootPi():
     command = "/usr/bin/sudo /sbin/shutdown -r now"
     import subprocess
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     output = process.communicate()[0]
-    print output
+    print(output)
     
 def handle_button(pin):
     global waitingforshutdown
@@ -373,6 +373,7 @@ def handle_button(pin):
         print('volUp')
         socketIO.emit('volume', '+')
 
+# Main Loop
 def main():
     while True:
         print ('Entering Main Loop')
@@ -386,6 +387,7 @@ def main():
         socketIO.wait()
         time.sleep(0.01)
 
+# Display the shutting down message
 def shutitDown():
     print('Shutting Down.....')
     img = Image.new('RGB', (240, 240), color=(0, 0, 0))
@@ -397,11 +399,13 @@ def shutitDown():
     draw.text(((240-width)/2, 20),StatusText,font=font_l, fill=txt_col)
     disp.display(img)
 
+# Turn on the screen backlight
 def setScreenOn():
     global isScreenOn 
     disp.set_backlight(True)
     isScreenOn = 1
 
+# Turn off the screen backlight
 def setScreenOff():
     global isScreenOn 
     disp.set_backlight(False)
@@ -411,6 +415,9 @@ def setScreenOff():
 if __name__ == '__main__':
         try:
             main()
-        except KeyboardInterrupt, Exception:
+        except KeyboardInterrupt:
+            shutitDown()
+            pass
+        except Exception:
             shutitDown()
             pass
