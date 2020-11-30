@@ -1,0 +1,36 @@
+Copy Files to /home/volumio/pirate/
+
+Install Dependencies
+
+sudo apt-get update
+sudo apt-get install python-rpi.gpio python-spidev python-pip python-pil python-numpy
+sudo pip install st7789
+sudo pip install socketIO-Client
+
+Add GPIO Definitions
+
+sudo nano /boot/config.txt
+
+and add following lines
+
+####### needed for Amp Hat ####
+dtparam=spi=on
+gpio=25=op,dh
+####### Fix for Button X Y ####
+gpio=16=pu
+gpio=20=pu
+
+SOME OF:
+
+
+Not these?
+sudo easy_install pip
+sudo pip install socketIO-client-2
+sudo pip install -U socketIO-client –user 
+sudo pip install "python-socketio[client]"
+
+sudo chmod +x /home/volumio/pirate/dacrpy.py 
+
+sudo nano /etc/rc.local
+put the path and your .py scrip before “exit 0” (dont forget the “&” ampersand at the and)
+/home/volumio/pirate/dacrpy.py  &
