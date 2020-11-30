@@ -1,5 +1,19 @@
 #!/usr/bin/env python
-
+##############################################################################
+#   Pirate Audio Display Script
+#
+#   Echoes album art, volume, track details and seek position to the Pirate Audio display (based on ST7789 Display) 
+#   Requires: 
+#       PirateAudio Headphone DAC/AMP or Amplifier
+#       Volumio Installation
+#
+#   Tested on Raspberry PI 4B and Raspberry Pi Zero WH
+#
+#   Developer: Ken Hayward (kenhayward@mac.com)
+#
+#   Usage: any
+#
+##############################################################################
 import time
 from colorsys import hsv_to_rgb
 from PIL import ImageFont, Image, ImageDraw, ImageStat
@@ -20,34 +34,29 @@ import commands
 # Startup Script
 print("Pirate Display | Startup")
 print("------------------------")
-print(" ")
-global waitingforshutdown
-global isScreenOn 
-waitingforshutdown = 0
+print("Version: 0.1 ")
+global waitingforshutdown   # 0 = Not Waiting, 1 = Waiting for button press on system menu screen
+global isScreenOn           # 0 = Screen not turned on, 1 = Screen is turned on
+
+waitingforshutdown = 0      # Initial state
   
 # get the path of the script
 script_path = os.path.dirname(os.path.abspath(__file__))
 # set script path as current directory
 os.chdir(script_path)
 
-# Services
-# airplay_emulation 
 
 def on_connect():
     print('connected')
 
 def on_disconnect():
     print('disconnected')
-    img = Image.new('RGBA', (240, 240), color=(0, 0, 0, 25))
-    img = Image.open('/volumio/app/plugins/miscellanea/albumart/default.jpg')
-    img = img.resize((WIDTH, HEIGHT))
-    draw = ImageDraw.Draw(img, 'RGBA')
-    draw.text((10, 200), 'shuting down ...', font=font_m, fill=(255, 255, 255))
-    disp.display(img)
+    shutitdown()
 
 # Get the background image and decorate it with hostname and IP Address 
 def getBackgroundImage():
-    temp_background = Image.open(script_path + '/images/blank.png').resize((240,240))
+    temp_background = Image.new('RGBA', (240, 240), color=(0, 0, 0, 25))
+    temp_background.paste(background_overlay,(0, 0), background_overlay)
     txt_col = (255, 255, 255)
     draw = ImageDraw.Draw(temp_background, 'RGBA')
     width,height= draw.textsize(hostname, font=font_l)
@@ -226,7 +235,7 @@ def on_push_state(*args):
             draw.text((x3, 105), args[0]['title'], font=font_l, fill=txt_col)  # fill by mean
 
     # volume bar
-    # Not prsent for airplay_emulation
+    # Not present for airplay_emulation
     if service != "airplay_emulation":
         vol_x = int((float(args[0]['volume'])/100)*(WIDTH - 33))
         draw.rectangle((5, 184, WIDTH-34, 184+8), bar_bgcol)  # background
@@ -283,13 +292,12 @@ spotify_overlay = Image.open('images/spotify_overlay.png').convert("RGBA")
 tidal_overlay = Image.open('images/tidal_overlay.png').convert("RGBA")
 bluetooth_overlay =  Image.open('images/bluetooth_overlay.png').convert("RGBA")
 qobuz_overlay =  Image.open('images/qobuz_overlay.png').convert("RGBA")
-
+background_overlay = Image.open('images/blank.png').convert("RGBA")
 # Setup Background Image 
 ipaddress = commands.getoutput('hostname -I')
 hostname = commands.getoutput('hostname')
 print("Ip Address: " + ipaddress)
 print("Hostname: " + hostname)
-waitingforshutdown = 0 
 default_background = getBackgroundImage()
 disp.display(default_background)
 
@@ -358,17 +366,6 @@ def handle_button(pin):
             img = Image.new('RGB', (240, 240), color=(0, 0, 0))
             system_menu =  Image.open('images/system_menu.png').convert("RGBA")
             img.paste(system_menu, (0, 0), system_menu)
-            #draw.rectangle((0, 0, 240, 240), (0, 0, 0))
-            #txt_col = (255, 255, 255)
-            #StatusText = 'Shutdown ?'
-            #width,height= draw.textsize(StatusText, font=font_l)
-            #draw.text(((240-width)/2, 20),StatusText,font=font_l, fill=txt_col)
-            #StatusText = 'Press Again to Shutdown'
-            #width,height= draw.textsize(StatusText, font=font_s)
-            #draw.text(((240-width)/2, 80),StatusText,font=font_s, fill=txt_col)
-            #StatusText = 'or other button to resume'
-            #width,height= draw.textsize(StatusText, font=font_s)
-            #draw.text(((240-width)/2, 110),StatusText,font=font_s, fill=txt_col)
             disp.display(img)
             waitingforshutdown = 1
     if pin == 24: # 'Y'
@@ -382,12 +379,10 @@ def main():
         for pin in BUTTONS:
             GPIO.add_event_detect(pin, GPIO.FALLING, handle_button, bouncetime=100)
         setScreenOn()
-        disp.set_backlight(True)
-        disp.display(default_background)
-        # Bind Socket 
-        socketIO.on('pushState', on_push_state)
-        # Get initial state
-        socketIO.emit('getState', '', on_push_state)
+        disp.set_backlight(True)                # Turn Backlight on
+        disp.display(default_background)        # Display default background
+        socketIO.on('pushState', on_push_state) # Bind Socket 
+        socketIO.emit('getState', '', on_push_state)     # Get initial state
         socketIO.wait()
         time.sleep(0.01)
 
@@ -418,5 +413,4 @@ if __name__ == '__main__':
             main()
         except KeyboardInterrupt, Exception:
             shutitDown()
-            #disp.set_backlight(False)
             pass
