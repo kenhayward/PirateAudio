@@ -32,6 +32,9 @@ import RPi.GPIO as GPIO
 import subprocess
 import socket
 
+# Local Python Packages
+import networkHelper
+
 # Startup Script
 print("Pirate Display | Startup")
 print("------------------------")
@@ -42,31 +45,8 @@ global isScreenOn           # 0 = Screen not turned on, 1 = Screen is turned on
 
 waitingforshutdown = 0      # Initial state
   
-# get the path of the script
-script_path = os.path.dirname(os.path.abspath(__file__))
-# set script path as current directory
-os.chdir(script_path)
-
-
-# Get the IP Address of the current machine
-def get_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
-
-# Get the hostname of the current machine
-def get_hostname():
-    import socket
-    host = socket.gethostname()
-    print('Hostname: ' + host)
-    return host
+script_path = os.path.dirname(os.path.abspath(__file__)) # get the path of the script
+os.chdir(script_path)                                    # set script path as current directory
 
 def on_connect():
     print('connected')
@@ -316,8 +296,8 @@ bluetooth_overlay =  Image.open('images/bluetooth_overlay.png').convert("RGBA")
 qobuz_overlay =  Image.open('images/qobuz_overlay.png').convert("RGBA")
 background_overlay = Image.open('images/blank.png').convert("RGBA")
 # Setup Background Image 
-ipaddress = get_ip()  
-hostname = get_hostname()
+ipaddress = networkHelper.get_ip()  
+hostname = networkHelper.get_hostname()
 print("Ip Address: " + ipaddress)
 print("Hostname: " + hostname)
 default_background = getBackgroundImage()
