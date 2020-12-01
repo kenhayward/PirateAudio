@@ -11,8 +11,9 @@
 #
 #   Developer: Ken Hayward (kenhayward@mac.com)
 #
-#   Usage: any
-#
+#   License: GNU GENERAL PUBLIC LICENSE
+#            Version 3, 29 June 2007
+#            See license.txt
 ##############################################################################
 import time
 from PIL import ImageFont, Image, ImageDraw, ImageStat
@@ -28,13 +29,14 @@ import sys
 import logging
 import signal
 import RPi.GPIO as GPIO
-import commands 
 import subprocess
+import socket
 
 # Startup Script
 print("Pirate Display | Startup")
 print("------------------------")
 print("Version: 0.1 ")
+
 global waitingforshutdown   # 0 = Not Waiting, 1 = Waiting for button press on system menu screen
 global isScreenOn           # 0 = Screen not turned on, 1 = Screen is turned on
 
@@ -45,6 +47,26 @@ script_path = os.path.dirname(os.path.abspath(__file__))
 # set script path as current directory
 os.chdir(script_path)
 
+
+# Get the IP Address of the current machine
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+# Get the hostname of the current machine
+def get_hostname():
+    import socket
+    host = socket.gethostname()
+    print('Hostname: ' + host)
+    return host
 
 def on_connect():
     print('connected')
@@ -294,8 +316,8 @@ bluetooth_overlay =  Image.open('images/bluetooth_overlay.png').convert("RGBA")
 qobuz_overlay =  Image.open('images/qobuz_overlay.png').convert("RGBA")
 background_overlay = Image.open('images/blank.png').convert("RGBA")
 # Setup Background Image 
-ipaddress = commands.getoutput('hostname -I')
-hostname = commands.getoutput('hostname')
+ipaddress = get_ip()  
+hostname = get_hostname()
 print("Ip Address: " + ipaddress)
 print("Hostname: " + hostname)
 default_background = getBackgroundImage()
@@ -310,6 +332,7 @@ LABELS = ['A', 'B', 'X', 'Y']
 # Buttons connect to ground when pressed, so we should set them up
 # with a "PULL UP", which weakly pulls the input signal to 3.3V.
 GPIO.setup(BUTTONS, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
 
 def shutDownPi():
     command = "/usr/bin/sudo /sbin/shutdown now"
